@@ -8,20 +8,36 @@ use App\User;
 
 class AuthController extends Controller
 {
-  public function register(Request $request) {
+    public function register(Request $request) {
+      $data = $request->validate([
+        'name' => 'required|min:3',
+        'email' => 'required|email|unique:users',
+        'password' => 'required|min:3'
+      ]);
 
-    $data = $request->validate([
-      'name' => 'required',
-      'email' => 'email|required|unique:users',
-      'password' => 'required|confirmed'
-    ]);
+      $data['password'] = bcrypt($data['password']);
 
-    $user = User::create($data);
-    $accessToken = $user->createToken('authToken')->accessToken;
+      $user = User::create($data);
+      $token = $user->createToken('AuthToken')->accessToken;
 
-    //  use Json() to return a Json response
-    return response(['user' => $user, 'access_token' => $accessToken]); // ->json([
+      return response()->json(['Status' => 'Success', 'User' => $data, 'Token' => $token]);
+    }
 
-    // ]);
-  }
+    public function login(Request $request) {
+      $data = $request->validate([
+        'email' => 'email|required',
+        'password' => 'required|min:3'
+      ]);
+      if(!auth()->attempt($data)) {
+        return response()->json(['Status' => 'failed', 'error' => 'UnAuthorised']);
+      }
+
+      $Token = auth()->user()->createToken('UserToken')->accessToken;
+      return response()->json(['status' => 'Success', 'Token' => $Token]);
+    }
+
+    public function details() {
+
+      return response()->json(['Status' => 'Success', 'User' => auth()->user()]);
+    }
 }
